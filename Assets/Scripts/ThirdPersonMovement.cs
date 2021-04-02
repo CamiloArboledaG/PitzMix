@@ -83,6 +83,7 @@ public class ThirdPersonMovement : MonoBehaviour
         if (Input.GetMouseButtonDown(0) && haveBall)
         {
             RaycastHit hit;
+            ball.GetComponent<Rigidbody>().isKinematic = false;
             if (Physics.Raycast(transform.position, moveDir, out hit, range))
             {
                 Debug.Log(hit.collider.name);
@@ -90,6 +91,7 @@ public class ThirdPersonMovement : MonoBehaviour
                 {
                     Vector3 dirRing = Vector3.Normalize(RingR.transform.position - ball.transform.position);
                     dirRing.y += 0.05f;
+                    ball.transform.parent = null;
                     ball.GetComponent<Rigidbody>().AddForce(dirRing * passForce);
                     haveBall = false;
                 }
@@ -97,6 +99,7 @@ public class ThirdPersonMovement : MonoBehaviour
             else
             {
                 moveDir.y = 0.5f;
+                ball.transform.parent = null;
                 ball.GetComponent<Rigidbody>().AddForce(moveDir * passForce);
                 haveBall = false;
             }
@@ -108,10 +111,10 @@ public class ThirdPersonMovement : MonoBehaviour
         {
             Debug.Log("Choco");
             haveBall = true;
-        }
-        else 
-        {
-            haveBall = false;
+            ball.GetComponent<Rigidbody>().velocity = Vector3.zero;
+            ball.GetComponent<Rigidbody>().isKinematic = true;
+            ball.transform.SetParent(transform);
+           
         }
     }
 }
