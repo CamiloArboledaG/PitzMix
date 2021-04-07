@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public class ThirdPersonMovement : MonoBehaviour
@@ -26,7 +27,7 @@ public class ThirdPersonMovement : MonoBehaviour
 
     bool isGrounded;
 
-    public GameObject ball;
+    //public GameObject ball;
 
     public GameObject torso;
 
@@ -36,46 +37,104 @@ public class ThirdPersonMovement : MonoBehaviour
     bool haveBall = false;
 
     Vector3 moveDir;
+    private ThirdPersonMovement[] allOtherPlayers;
+    private Ball ball;
+
+    private void Awake()
+    {
+        allOtherPlayers = FindObjectsOfType<ThirdPersonMovement>().Where(t => t != this).ToArray();
+        ball = FindObjectOfType<Ball>();
+    }
+
     private void Start()
     {
         Cursor.lockState = CursorLockMode.Locked;
     }
     void Update()
     {
-        isGrounded = Physics.CheckSphere(groundCheck.position, groundDistance, groundMask);
-
-        if (isGrounded && velocity.y < 0)
-        {
-            velocity.y = -2f;
-        }
-
         float horizontal = Input.GetAxisRaw("Horizontal");
         float vertical = Input.GetAxisRaw("Vertical");
-        Vector3 direction = new Vector3(horizontal, 0f, vertical).normalized;
-
-
-        if (direction.magnitude >= 0.1f)
+        //Vector3 direction = new Vector3(horizontal, 0f, vertical).normalized;
+        if (gameObject.name.Equals("Personaje"))
         {
-            float targetAngle = Mathf.Atan2(direction.x, direction.z) * Mathf.Rad2Deg + cam.eulerAngles.y;
-            float angle = Mathf.SmoothDampAngle(transform.eulerAngles.y, targetAngle, ref turnSmoothVelocity, turnSmoothTime);
-            transform.rotation = Quaternion.Euler(0f, angle, 0f);
+            Vector3 direction = new Vector3(horizontal, 0f, vertical).normalized;
+            isGrounded = Physics.CheckSphere(groundCheck.position, groundDistance, groundMask);
 
-            Vector3 moveDir = Quaternion.Euler(0f, targetAngle, 0f) * Vector3.forward;
-            controller.Move(moveDir.normalized * speed * Time.deltaTime);
+            float targetAngle2 = Mathf.Atan2(direction.x, direction.z) * Mathf.Rad2Deg + cam.eulerAngles.y;
+            float angle2 = Mathf.SmoothDampAngle(transform.eulerAngles.y, targetAngle2, ref turnSmoothVelocity, turnSmoothTime);
+            transform.rotation = Quaternion.Euler(0f, angle2, 0f);
+            Vector3 moveDir2 = Quaternion.Euler(0f, targetAngle2, 0f) * Vector3.forward;
 
-            Debug.DrawRay(transform.position, moveDir * range, Color.red);
+            if (isGrounded && velocity.y < 0)
+            {
+                velocity.y = -2f;
+            }
 
-            Aim(moveDir);
+            if (direction.magnitude >= 0.1f)
+            {
+                float targetAngle = Mathf.Atan2(direction.x, direction.z) * Mathf.Rad2Deg + cam.eulerAngles.y;
+                float angle = Mathf.SmoothDampAngle(transform.eulerAngles.y, targetAngle, ref turnSmoothVelocity, turnSmoothTime);
+                transform.rotation = Quaternion.Euler(0f, angle, 0f);
+
+                Vector3 moveDir = Quaternion.Euler(0f, targetAngle, 0f) * Vector3.forward;
+                controller.Move(moveDir.normalized * speed * Time.deltaTime);
+
+                Debug.DrawRay(transform.position, moveDir * range, Color.red);
+
+                Aim(moveDir);
+                
+            }
+
+            if (Input.GetButtonDown("Jump") && isGrounded)
+            {
+                velocity.y = Mathf.Sqrt(jumpHeight * -2 * gravity);
+            }
+
+            velocity.y += gravity * Time.deltaTime;
+
+            controller.Move(velocity * Time.deltaTime);
+
+            if (IHaveBall())
+            {
+                var targetPlayer = FindPlayerInDirection(moveDir2);
+                if (targetPlayer != null)
+                {
+                    if (Input.GetButton("Fire1"))
+                        PassBallToPlayer(targetPlayer);
+                }
+            }
+
         }
 
-        if (Input.GetButtonDown("Jump") && isGrounded)
-        {
-            velocity.y = Mathf.Sqrt(jumpHeight * -2 * gravity);
-        }
+        
+    }
 
-        velocity.y += gravity * Time.deltaTime;
+    private void PassBallToPlayer(ThirdPersonMovement targetPlayer)
+    {
+        var direction = DirectionTo(targetPlayer);
+        ball.transform.SetParent(null);
+        ball.GetComponent<Rigidbody>().isKinematic = false;
+        ball.GetComponent<Rigidbody>().AddForce(direction * passForce);
+    }
 
-        controller.Move(velocity * Time.deltaTime);
+    private Vector3 DirectionTo(ThirdPersonMovement player)
+    {
+        return Vector3.Normalize(player.transform.position - ball.transform.position);
+    }
+
+    private ThirdPersonMovement FindPlayerInDirection(Vector3 direction)
+    {
+        var closestAngle = allOtherPlayers
+            .OrderBy(t => Vector3.Angle(direction, DirectionTo(t)))
+            .FirstOrDefault();
+
+        return closestAngle;
+
+    }
+
+    private bool IHaveBall()
+    {
+        return transform.childCount > 3;
     }
 
     private void Aim(Vector3 moveDir)
@@ -114,7 +173,17 @@ public class ThirdPersonMovement : MonoBehaviour
             ball.GetComponent<Rigidbody>().velocity = Vector3.zero;
             ball.GetComponent<Rigidbody>().isKinematic = true;
             ball.transform.SetParent(transform);
-           
+
+        }
+    }
+    private void OnTriggerEnter(Collider other)
+    {
+        Ball ball = other.GetComponent<Ball>();
+        if (ball != null)
+        {
+            ball.GetComponent<Rigidbody>().velocity = Vector3.zero;
+            ball.GetComponent<Rigidbody>().isKinematic = true;
+            ball.transform.SetParent(transform);
         }
     }
 }
