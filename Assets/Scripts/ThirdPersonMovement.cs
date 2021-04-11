@@ -8,10 +8,22 @@ public class ThirdPersonMovement : MonoBehaviour
     public CharacterController controller;
     public Transform cam;
 
+    public GameObject cuboVeneno;
+    public GameObject cuboAntidoto;
+    public GameObject balloff;
+    public GameObject barrier;
+
+
+
     public float passForce = 900f;
     public float range = 50f;
 
-    public float speed = 6f;
+    public float speed;
+    float speedf;
+
+
+
+    bool poison = false;
 
     public float turnSmoothTime = 0.1f;
     float turnSmoothVelocity;
@@ -44,14 +56,20 @@ public class ThirdPersonMovement : MonoBehaviour
     {
         allOtherPlayers = FindObjectsOfType<ThirdPersonMovement>().Where(t => t != this).ToArray();
         ball = FindObjectOfType<Ball>();
+
     }
 
     private void Start()
     {
+
+        speedf = speed;
         Cursor.lockState = CursorLockMode.Locked;
     }
     void Update()
     {
+
+        StatePoison();
+
         float horizontal = Input.GetAxisRaw("Horizontal");
         float vertical = Input.GetAxisRaw("Vertical");
         //Vector3 direction = new Vector3(horizontal, 0f, vertical).normalized;
@@ -82,7 +100,7 @@ public class ThirdPersonMovement : MonoBehaviour
                 Debug.DrawRay(transform.position, moveDir * range, Color.red);
 
                 Aim(moveDir);
-                
+
             }
 
             if (Input.GetButtonDown("Jump") && isGrounded)
@@ -106,7 +124,7 @@ public class ThirdPersonMovement : MonoBehaviour
 
         }
 
-        
+
     }
 
     private void PassBallToPlayer(ThirdPersonMovement targetPlayer)
@@ -164,6 +182,42 @@ public class ThirdPersonMovement : MonoBehaviour
             }
         }
     }
+
+    private void StatePoison()
+    {
+
+        if (poison)
+        {
+
+            speed = speed - 0.01f;
+        }
+        if (speed <= 0)
+        {
+            Destroy(this.gameObject);
+        }
+
+    }
+
+    void barrierOn()
+    {
+
+        barrier.SetActive(true);
+
+        Invoke("barrierOff", 5.0f);
+
+    }
+
+    void barrierOff()
+    {
+        barrier.SetActive(false);
+
+
+    }
+
+
+
+
+
     private void OnCollisionEnter(Collision other)
     {
         if (other.gameObject.name.Equals("ball"))
@@ -175,7 +229,34 @@ public class ThirdPersonMovement : MonoBehaviour
             ball.transform.SetParent(transform);
 
         }
+
+        if (other.gameObject.name.Equals("Poison"))
+        {
+            Destroy(cuboVeneno);
+
+            poison = true;
+
+
+        }
+
+        if (other.gameObject.name.Equals("Antidote"))
+        {
+            Destroy(cuboAntidoto);
+
+            poison = false;
+            speed = speedf;
+
+        }
+
+        if (other.gameObject.name.Equals("Balloff"))
+        {
+            Destroy(balloff);
+            barrierOn();
+        }
+
     }
+
+
     private void OnTriggerEnter(Collider other)
     {
         Ball ball = other.GetComponent<Ball>();
