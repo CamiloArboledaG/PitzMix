@@ -5,5 +5,5 @@ Videojuego online que consiste en el juego de pelota mesoamericano, donde se pod
 #Tecnologías
 - Unity
 - C#
-
+Juega please.😊
 Link del .exe del juego: https://drive.google.com/drive/folders/1MM17z0s-6ZsQBliw4lBuiqKHsO-JnU5X?usp=sharing
